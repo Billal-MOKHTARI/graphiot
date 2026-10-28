@@ -1,0 +1,16 @@
+# Short smoke test on the dev backend (soft-PLC + synthesized flows).
+# NOT for paper numbers: for_paper must stay false.
+schema_version: 1
+experiment:
+  name: dev_smoke
+  description: "5-minute smoke test of the whole pipeline on the dev backend."
+  for_paper: false
+seeds: [11]
+device: cpu
+testbed: {backend: dev, sim_seed: 7}
+campaign:
+  benign_duration_s: 300
+  schedule_seed: 7
+  red_team: {episodes: 2, max_episode_s: 120, min_gap_s: 30}
+  tasks: {mean_interval_s: 40}
+model: {max_epochs: 3, patience: 2}

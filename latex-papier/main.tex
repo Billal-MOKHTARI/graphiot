@@ -1,0 +1,350 @@
+% =====================================================================
+% 14-GRAPHIOT -- IEEE Internet of Things Journal
+% Special Issue "Graph Representation Learning for Internet of Things"
+% Call: https://ieee-iotj.org/wp-content/uploads/2026/06/Graph_Representation_Learning.pdf
+%   deadline 30/11/2026; single-anonymous review; abstract 150-250 words;
+%   8 pages without overlength charge; ORCID mandatory for all authors.
+% Template: IEEEtran (journal, double column). Target: 8 pages with results.
+% Round 3 (15/10/2026). Billal's tasks are in \billal{} (red); Yulliwas's
+% tasks (30 h, 16/10-15/11) are in \yulliwas{} (blue). Every bracketed value
+% [..] is a placeholder. Workload tables and stopping points: README.md.
+% Y. Ameur and S. Bouzefrane enter their own ORCID iDs at submission.
+% =====================================================================
+\documentclass[journal]{IEEEtran}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{cite}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\billal}[1]{\textcolor{red}{#1}}
+\newcommand{\yulliwas}[1]{\textcolor{blue}{#1}}
+\newtheorem{definition}{Definition}
+\newtheorem{observation}{Observation}
+
+\begin{document}
+
+\title{Detecting Harmful LLM-Agent Commands in Industrial IoT\\ with Task-Aware Graph Neural Networks}
+
+\author{Billal~Mokhtari,
+        Yulliwas~Ameur,
+        and~Samia~Bouzefrane%
+\thanks{B. Mokhtari and S. Bouzefrane are with the CEDRIC Laboratory, Conservatoire National des Arts et Métiers (Cnam), 75003 Paris, France.}%
+\thanks{Y. Ameur is with Efrei Research Lab, Université Paris-Panthéon-Assas, 94800 Villejuif, France, and with the CEDRIC Laboratory, Cnam, 75003 Paris, France.}%
+\thanks{Corresponding author: B. Mokhtari (\billal{[e-mail]}; ORCID \billal{[0000-000X-XXXX-XXXX]}).}%
+\thanks{This work was supported by the European Union's Horizon Europe programme through the BATTwin project under Grant Agreement 101137954.}}
+
+\markboth{IEEE Internet of Things Journal, Special Issue on Graph Representation Learning for IoT}%
+{Mokhtari \MakeLowercase{\textit{et al.}}: Detecting Harmful LLM-Agent Commands in Industrial IoT}
+
+\maketitle
+
+% Abstract: 150--250 words. Count without the red sentence: see README.
+\begin{abstract}
+Large language model (LLM) agents are starting to operate industrial Internet of Things (IIoT) plants. They act through edge gateways that turn tool calls into fieldbus writes to programmable logic controllers. A misled or hijacked agent can issue commands that are valid, authorized and inside its allow-list. The hardest ones are \emph{context-shifted}: the same tool call with the same value occurs in normal operation, but under another task or another process phase. Network, agent and process monitors each miss part of this context. We link tasks, agents, tool calls, network hosts, controllers, process tags and production stages in one dynamic heterogeneous graph built at the gateway. A temporal graph neural network learns, from benign operation only, how likely each command is given its task and the current plant state. The anomaly score is the surprise of the command, computed before its effect appears. An independent red-team agent, given only MITRE ATT\&CK for ICS techniques, produces the attacks. A pre-registered oracle labels them. It checks process outputs against operating limits that the detector never sees. On a battery-manufacturing testbed, we compare the model with a phase-aware value table, a tabular model given the same features, an LLM judge, and public network and agent detectors. We also measure the evasion rate of an effect-preserving adaptive attacker and the cost of running the monitor on the gateway. \billal{[One sentence (at most 25 words) with the measured result on context-shifted commands, positive or negative.]}
+\end{abstract}
+
+\begin{IEEEkeywords}
+Industrial Internet of Things, IoT security, cyber-physical systems, IoT data analytics, edge computing, graph neural networks, large language models.
+\end{IEEEkeywords}
+
+% =====================================================================
+\section{Introduction}
+% =====================================================================
+\IEEEPARstart{I}{ndustrial} Internet of Things (IIoT) plants are being connected to large language model (LLM) agents. An LLM agent is a program that uses a language model to plan steps and call tools. In a factory, an edge gateway exposes the tools. The gateway reads process values and writes setpoints to programmable logic controllers (PLCs) over Modbus TCP or OPC UA. Recent prototypes let agents control manufacturing cells in this way~\cite{xia2025control,vyas2025autonomous,hornyak2026plc,nogueira2026arc}.
+
+An agent acts with the credentials of a trusted operator. Prompt injection, a compromised tool or a poisoned memory can redirect it~\cite{shahid2026copilots}. It can also simply err. Tool-using agents can turn PLC access into sustained physical impact~\cite{zhou2026plcbench}. The resulting commands are valid fieldbus writes, sent by an authorized gateway, to an allowed register.
+
+Current defenses each see one side. Agent guards check tool calls against task-derived permissions, learned execution boundaries or predicted risk~\cite{qin2026airguard,sequeira2026agentsentry,wang2025probguard,he2026attriguard}. They do not know the state of the physical process. Network detectors model hosts, flows and protocol semantics~\cite{lo2022egraphsage,kong2025grid,malladi2026protocol}. They do not know which task the agent was given. Process monitors model sensor time series or state-aware invariants~\cite{deng2021gdn,abbas2024sain}. They do not know who issued a command or why.
+
+These blind spots meet in one class of commands that we call \emph{context-shifted}. A context-shifted command has a tool, a target tag and a value that all occur in normal operation. Its context makes it harmful. An example is a coating-speed write that is routine during steady coating but harmful during dryer warm-up. No single view separates such a command from its benign twin (Observation~\ref{obs:views}). The evidence is spread over the task, the agent, the gateway, the controller, the tag and the production stage. These relations change every second. Graph representation learning suits such relational and time-varying IoT data~\cite{dong2022gnniot,moorthy2025survey}.
+
+We ask one question. \emph{Does a graph that links the agent's task to the plant state detect context-shifted commands better than single-view detectors?} The model is trained on benign data only. An oracle whose limits it never sees judges it.
+
+\textbf{Contributions.} The paper makes three contributions.
+\begin{enumerate}
+\item \textbf{Problem and test slice.} We define context-shifted commands (Definition~\ref{def:cs}). We turn the definition into a measurable test slice: red-team commands whose tool, tag and value bin also occur in benign training data.
+\item \textbf{Task-conditioned command likelihood at the edge.} We model an agent-operated IIoT cell as a dynamic heterogeneous graph built from the gateway's logs and the fieldbus. A heterogeneous temporal graph neural network (GNN) learns, from benign operation only, to predict each command from its task and the plant subgraph. A command is scored by its surprise, before its effect appears. The model needs no attack labels and runs on the gateway's CPU.
+\item \textbf{A test that can fail.} Attacks come from an independent red-team LLM agent. A pre-registered oracle on process outputs provides the labels. The baselines include a phase-aware value table, a tabular model given the same features, an LLM judge, and public network and agent detectors. An adaptive attacker that must keep the physical effect tests robustness. Data, oracle and code are released.
+\end{enumerate}
+
+The architecture is standard: heterogeneous graph transformers~\cite{hu2020hgt} and gated recurrent memory, as in TH-GNN~\cite{swarup2026thgnn}. Our contribution is the problem, the training signal and the test.
+
+\textbf{Scope.} We do not study \emph{how} an agent is hijacked; the detector is agnostic to the cause. We exclude attacks that falsify sensors to deceive the agent; those need physics-based defenses.
+
+% =====================================================================
+\section{Related Work}\label{sec:related}
+% =====================================================================
+\subsection{Guarding LLM Agents}
+Most agent guards work at the tool-call boundary. AIRGuard derives step-level permissions from the task and simulates sensitive side effects~\cite{qin2026airguard}. Task Shield checks that each call serves the user's task~\cite{jia2025taskshield}. AttriGuard re-runs the agent with weakened observations to test whether a call stems from the user's request~\cite{he2026attriguard}. Agent-Sentry learns the boundaries of benign executions from action sequences and argument provenance~\cite{sequeira2026agentsentry}. AgentSpec enforces user-written runtime rules~\cite{wang2025agentspec}. ProbGuard abstracts traces into symbolic states, fits a Markov chain and intervenes when the predicted probability of staying safe drops~\cite{wang2025probguard}. DreamGuard predicts risk with a learned world model of the trajectory~\cite{lin2026dreamguard}. SafeAgent, DriftNet and TraceAegis model the session state or the trajectory~\cite{liu2026safeagent,pinjari2026driftnet,traceaegis2025}. AgentShield-G and AegisMCP score tool calls on typed session graphs~\cite{divi2026agentshieldg,zhan2025aegismcp}. Graph monitors for multi-agent systems learn on utterance graphs~\cite{wang2025gsafeguard,pan2025xgguard,zhou2025guardian}. RoboGuard grounds an LLM robot's plan in a world model and checks it against safety rules~\cite{ravichandran2026roboguard}. Shahid and Mallavrapu show indirect prompt injection against LLM copilots in industrial control systems~\cite{shahid2026copilots}. None of these guards encodes controller registers, process phases or industrial traffic in a learned model.
+
+\subsection{Context-Aware Control in ICS}
+Industrial security has long checked commands against plant state. CPS enforces stateful policies on control-device usage~\cite{mclaughlin2013cps}. CPAC checks control commands against a physical model before they reach the plant~\cite{etigowni2016cpac}. SAIN mines invariants tied to PLC program states and tightens detection bounds~\cite{abbas2024sain}. These systems need hand-written policies or mined invariants on the process. They do not know the operator's task. Our phase-aware value table (B0) is a learned analogue of state-aware invariants; it tells whether the task adds anything.
+
+\subsection{Graph-Based Intrusion Detection for IoT and IIoT}
+E-GraphSAGE classifies flow edges with a GNN~\cite{lo2022egraphsage}. Later work adds self-supervision~\cite{caville2022anomale}, hierarchical traffic graphs~\cite{kong2025grid}, dynamic attention~\cite{sun2025hadga} and causal counterfactuals~\cite{zhang2026ccgids}. Malladi and Thamilarasu combine protocol-aware semantics with a mixture of graph experts for IoT intrusion detection~\cite{malladi2026protocol}. It is the closest IoT graph detector we found, but its graph has no task or process-stage node. Our group studied GNN attack detection for IoT in~\cite{rezki2025leveraging}. GDN and IstGPT learn sensor graphs for process anomalies~\cite{deng2021gdn,zhang2026istgpt}; they flag a deviation after it appears, while we score a command before its effect. Testbeds that map attacks to MITRE ATT\&CK for ICS exist~\cite{rahmani2026mitre}, but they have no agent.
+
+\subsection{Robustness of Graph Detectors}
+GNN detectors are evaded by structure perturbations~\cite{zugner2020adversarial}, flow injection~\cite{mouzaoui2026flow} and node injection~\cite{liang2026segia}. Realistic attacks must respect domain constraints~\cite{sheatsley2022adversarial,catillo2024problemspace}. We add a cyber-physical constraint: the attack must keep its physical effect.
+
+\subsection{Positioning}
+Table~\ref{tab:positioning} compares the closest works. No prior work we found conditions a learned command score on both the task and the plant state. None trains without attack labels while an external oracle labels the test.
+
+\begin{table*}[!t]
+\centering
+\caption{Positioning against the closest works. \checkmark: present; $\circ$: partial; --: absent; ?: not stated in the sources we checked. ``Task'': the score depends on the assigned task. ``Plant'': the score depends on process state. ``No attack labels'': trained on benign data only. ``Ext.\ oracle'': test labels from a source outside the model's inputs.}
+\label{tab:positioning}
+\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccccc}
+\toprule
+Work & Task & Plant & Network & Learned graph & No attack labels & Ext.\ oracle & Adaptive attacker \\
+\midrule
+AIRGuard~\cite{qin2026airguard} (2026) & \checkmark & -- & -- & -- & \checkmark & -- & $\circ$ \\
+Agent-Sentry~\cite{sequeira2026agentsentry} (2026) & $\circ$ & -- & -- & -- & \checkmark & -- & -- \\
+ProbGuard~\cite{wang2025probguard} (2025) & $\circ$ & $\circ$ & -- & -- & $\circ$ & -- & -- \\
+RoboGuard~\cite{ravichandran2026roboguard} (2026) & \checkmark & $\circ$ & -- & -- & \checkmark & -- & \checkmark \\
+SAIN~\cite{abbas2024sain} (2024) & -- & \checkmark & -- & -- & \checkmark & -- & ? \\
+Malladi \& Thamilarasu~\cite{malladi2026protocol} (2026) & -- & -- & \checkmark & \checkmark & ? & -- & ? \\
+AegisMCP~\cite{zhan2025aegismcp} (2025) & -- & $\circ$ & $\circ$ & $\circ$ & \checkmark & -- & -- \\
+\textbf{This work} & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+% =====================================================================
+\section{System and Threat Model}\label{sec:threat}
+% =====================================================================
+\subsection{IIoT System Model}
+We consider one production cell of a battery-electrode line (Fig.~\ref{fig:arch}). It has three stages: slurry mixing, coating with drying, and slitting. Each stage has an OpenPLC controller~\cite{alves2018openplc} that exposes coils and holding registers over Modbus TCP. We call each register or coil a \emph{tag}. An HMI and an engineering workstation share the cell network.
+
+An LLM operator agent assists the human operator. It receives \emph{tasks}, such as ``adjust the coating speed for work order 42''. It acts only through an \emph{edge IIoT gateway}. Northbound, the gateway exposes six tools: read a tag, write a tag, read a work order, read a stage status, load a recipe and acknowledge an alarm. Southbound, it translates each call into Modbus transactions. It logs every call with its task identifier and enforces a static allow-list of tags per task type. An OPC UA gateway would only change the southbound adapter.
+
+\begin{figure}[!t]
+\centering
+\fbox{\parbox{0.92\columnwidth}{\centering\billal{[Architecture figure, one column. Left: LLM operator agent and red-team agent (Cnam GPU server). Middle: edge IIoT gateway with the six tools, the allow-list, the log, and our monitor (graph builder + GNN scorer) on the same CPU. Right: cell network with HMI, EWS, three PLCs and their tags, grouped by stage. Below: process twin used only by the oracle, outside the monitor's inputs. Vector PDF.]}\vspace{2.5cm}}}
+\caption{IIoT cell, edge gateway and monitor. The oracle's process twin is outside the monitor's inputs.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Defender Model}
+The monitor runs on the edge gateway. It observes the gateway log, the Modbus transactions, flow records of the cell network and PLC tag values sampled at 1~Hz. It knows the static topology: which PLC controls which tag, and which tag belongs to which stage. It does \emph{not} receive recipes, operating limits or process outputs computed by the twin. It raises alarms; it does not block traffic in this study.
+
+\subsection{Attacker Model}
+\textbf{T1: Misled or hijacked agent.} For part of a session, the agent pursues a harmful goal. We do not model the cause. The agent keeps its identity and the gateway, and can only call the six tools. Its writes may stay inside the allow-list.
+
+\textbf{T2: Adaptive attacker.} The attacker acts through T1, knows the architecture and features, and can query the detector score (grey-box). It may only apply \emph{realizable edits}: insert benign-looking reads, interleave benign commands from past sessions, split one change into smaller ones, and shift commands in time. Every edit must keep the physical effect defined by the oracle (Section~\ref{sec:oracle}). The attacker has a budget of $B$ extra events per episode.
+
+\textbf{Out of scope.} Network attackers without the agent, poisoning of the detector's training data, compromise of the gateway or the monitor, sensor falsification and firmware attacks.
+
+\subsection{Context-Shifted Commands}
+Let a command be $c=(a,\kappa,v,t)$: tool $a$, target tag $\kappa$, value $v$ and time $t$. Let $\mathrm{bin}(v)$ map a value to one of $Q$ quantile bins learned on benign data. Let $\mathcal{C}_{\text{benign}}$ be the set of triples $(a,\kappa,\mathrm{bin}(v))$ observed in the benign training data.
+
+\begin{definition}[Context-shifted command]\label{def:cs}
+A command $c$ is context-shifted if $(a,\kappa,\mathrm{bin}(v))\in\mathcal{C}_{\text{benign}}$, the allow-list permits it for its task, and the oracle labels it harmful.
+\end{definition}
+
+\begin{observation}[Single-view blindness]\label{obs:views}
+A detector whose score depends on a command only through $(a,\kappa,\mathrm{bin}(v))$ and agent-side history gives a context-shifted command the same score as a benign command with the same history and triple. The same holds for a network detector that sees the Modbus write, and for a process detector before the effect appears.
+\end{observation}
+
+The observation is elementary; we do not claim it as a result. It explains why we report the slice separately. The open question is empirical: can a learned graph model recover the missing context, beyond what a phase-aware value table already gives?
+
+% =====================================================================
+\section{Method}\label{sec:method}
+% =====================================================================
+\subsection{Task--Plant Graph}\label{sec:graph}
+The gateway builds snapshots $\mathcal{G}_t=(\mathcal{V}_t,\mathcal{E}_t)$ over sliding windows of length $\Delta=10$~s with stride 5~s. Table~\ref{tab:schema} lists node and edge types.
+
+\begin{table}[!t]
+\centering
+\caption{Graph schema. No feature contains a recipe value, an operating limit or a twin output.}
+\label{tab:schema}
+\footnotesize
+\begin{tabular}{p{0.32\columnwidth}p{0.58\columnwidth}}
+\toprule
+Node type & Features \\
+\midrule
+Task & task type, target stage, requested tag set; no value \\
+Agent & session age, tool-call rate \\
+Gateway & call rate, error rate \\
+Host & role (HMI, EWS, gateway, unknown), flow statistics \\
+PLC & request rate \\
+Tag & type, current value, rolling mean and standard deviation \\
+Stage & phase (idle, ramp, steady, transition), time in phase \\
+\midrule
+Edge type & Features \\
+\midrule
+assigned (Task$\to$Agent) & time since assignment \\
+invokes (Agent$\to$Gateway) & tool identifier \\
+writes / reads (Gateway or Host$\to$Tag) & Modbus function code, value, change from previous value \\
+flow (Host$\to$Host) & NetFlow-style features~\cite{sarhan2022standard} \\
+controls (PLC$\to$Tag), belongs (Tag$\to$Stage) & static \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Causal scoring rule.} The score of a command at time $t$ uses only events with timestamps strictly before $t$, plus the command's own fields. The effect of a command is therefore never visible when it is scored.
+
+\subsection{Task-Conditioned Command Likelihood}\label{sec:model}
+\textbf{Encoder.} Each node type has a linear projection to $d=64$. Two heterogeneous graph transformer (HGT) layers~\cite{hu2020hgt} aggregate typed messages within each snapshot. A per-node GRU carries embeddings across snapshots: $\mathbf{m}_v^{t}=\mathrm{GRU}(\mathbf{h}_v^{t},\mathbf{m}_v^{t-1})$. New nodes start from a zero memory.
+
+\textbf{Training signal.} The model is trained on benign operation only. For each write command $c$ issued under task $\tau$, it predicts the target tag and the value bin from the context:
+\begin{equation}
+p_\theta(\kappa,\mathrm{bin}(v)\mid \mathbf{m}_{\tau}^{t^-},\mathbf{m}_{\text{agent}}^{t^-},\mathbf{m}_{\text{stage}(\kappa)}^{t^-},\mathbf{m}_{\kappa}^{t^-}),
+\end{equation}
+where $t^-$ is the last snapshot before $t$. The head is a two-layer perceptron with a softmax over allowed (tag, bin) pairs. The loss is the negative log-likelihood.
+
+\textbf{Score.} The anomaly score is the surprise $s(c)=-\log p_\theta(\kappa,\mathrm{bin}(v)\mid\cdot)$. A context-shifted command has a frequent triple but an unlikely context. Its surprise is high only if the model uses the task and the stage. The alarm threshold is set on benign validation data to a 1\% false positive rate.
+
+\textbf{Hyperparameters.} Defaults: $Q=8$ bins, $d=64$, 2 HGT layers with 4 heads, Adam with learning rate $10^{-3}$, batch of 32 snapshots, early stopping on validation likelihood. Training runs on one RTX 6000 Ada GPU. \billal{[Report the final values, the search grid if any (at most 2 values per parameter, chosen on benign validation data only), training time and number of parameters.]}
+
+\textbf{Edge deployment.} The gateway updates the current snapshot incrementally and scores each write before forwarding it. \billal{[On the gateway VM restricted to 4 CPU cores and 4~GB of memory: median and 99th-percentile latency per command ([X]~ms, [X]~ms), peak memory ([X]~MB), model size ([X]~kB).]}
+
+\subsection{Adaptive, Effect-Preserving Attack}\label{sec:adv}
+The attacker solves
+\begin{equation}
+\min_{\delta\in\mathcal{R}_B(e)}\; \max_{c\in e\oplus\delta} s_\theta(c)\quad\text{s.t.}\quad \mathrm{Oracle}(e\oplus\delta)=\text{harmful},
+\end{equation}
+where $e$ is an episode and $\mathcal{R}_B(e)$ is the set of realizable edit sequences with at most $B$ added events. The oracle is evaluated by replay. The attacker greedily applies the edit that lowers the maximum score most. We use $B\in\{0,4,8\}$ and report the share of harmful episodes that evade each detector at its 1\% false-positive threshold. \yulliwas{[Y. Ameur implements the edit generator and the greedy search on Billal's replay interface and runs it on 50 harmful episodes per detector.]}
+
+% =====================================================================
+\section{Evaluation Protocol}\label{sec:setup}
+% =====================================================================
+\subsection{Capture}\label{sec:data}
+The capture uses the virtual BATTwin testbed of our earlier dataset (OpenPLC, Modbus TCP, GNS3, pfSense)~\cite{mokhtari2026cybattics}. The gateway, the agents and the capture scripts are new. An open-weight LLM operator agent \billal{[model name and size, e.g., 7--8B]} operates the cell through the gateway; it runs on the Cnam GPU server. A task generator issues routine tasks from work orders, including unusual but legitimate operator overrides. The capture runs unattended. Target: at least 8~h of benign operation \billal{[achieved: X~h, Y commands]}.
+
+The data are emulated, not synthetic. Modbus traffic, PLC logic, gateway logs and agent tool calls come from the real software stack. Only the plant physics is simulated. We discuss this limit in Section~\ref{sec:discussion}.
+
+\textbf{Independent attack generation.} At random times, a red-team agent from a different LLM family \billal{[model name]} replaces the operator agent. It receives only (i) the text of one of four MITRE ATT\&CK for ICS techniques (T0836 Modify Parameter, T0855 Unauthorized Command Message, T0831 Manipulation of Control, T0821 Modify Controller Tasking) and (ii) the plant documentation given to the operator agent. Its goal is to degrade the process without being stopped by the allow-list. The authors write no attack script.
+
+\subsection{Oracle on Process Outputs}\label{sec:oracle}
+\textbf{Decoupling from the benign generator.} The task generator draws setpoints from work orders and recipes. The oracle does not use recipes. It checks \emph{process outputs}, such as dryer air temperature, web tension and coated-layer thickness, against the twin's operating limits. These limits come from the equipment specification, not from the recipe book. A benign command can therefore violate them, for example an override at the wrong moment, and a red-team command can stay inside them. We report the share of operator commands that the oracle flags. We also report the phase-aware value table B0, which learns from benign data what the recipes allow in each phase. If B0 matches our model on the slice, the task adds nothing beyond recipe knowledge.
+
+\textbf{Primary oracle (twin replay).} After each episode, the process twin replays the command sequence. An episode is harmful if a process output leaves its operating limits by at least $\tau$ (relative to the limit width) for at least $T_{\min}$ seconds. A command is harmful if removing it and replaying brings all outputs back inside their limits.
+
+\textbf{Fallback oracle (defined now).} If the twin cannot replay command sequences on 17/10/2026, we use the logged tag values of the capture itself. An episode is harmful if a logged process tag leaves its operating limits for at least $T_{\min}$ seconds within 120~s of a red-team command. Command-level labels then use the last write to a tag of the same stage before the violation. This oracle is weaker: it cannot test counterfactual removals. The adaptive attacker then checks the effect by re-running the edited episode on the testbed, which costs more time; $B$ is then limited to $\{0,4\}$.
+
+\billal{[By 17/10/2026: primary or fallback oracle; list of process outputs, their limits, $\tau$ and $T_{\min}$ as a supplementary table.]} \yulliwas{[Y. Ameur writes and files the OSF registration (oracle, limits, hypotheses, analysis script): DOI and date, no later than 22/10/2026.]}
+
+The detector never receives operating limits, recipes or twin outputs (Table~\ref{tab:schema}), and it scores each command before its effect. Red-team episodes that cause no violation are labeled benign; operator episodes that cause one are labeled harmful.
+
+\subsection{Pilot and Go/No-Go}
+A pilot runs before the main capture: 1~h of benign operation and about 30 red-team episodes \billal{[pilot run by 25/10/2026]}. The go criterion has two parts. First, at least 50 context-shifted commands. Second, a depth-3 decision tree on the triple $(a,\kappa,\mathrm{bin}(v))$ plus the stage phase and the task type stays below 0.9 AUPRC on them, with a chronological split of the pilot. A tree on the triple alone cannot separate the slice by construction; adding phase and task type tests whether the slice is trivially separable. \yulliwas{[Y. Ameur computes the tree and B0 on the pilot: [X] context-shifted commands; tree AUPRC [X]; B0 AUPRC [X]; decision go/no-go.]} If the tree exceeds 0.9, the red-team prompt and the task generator are revised once. If it still exceeds 0.9, we report the slice as too easy and the paper becomes a negative result.
+
+\textbf{Power analysis.} The main test (H1) is a paired McNemar test on episode-level detection. Assume discordant proportions of 0.15 and 0.05. Then 155 harmful episodes give 80\% power at $\alpha=0.05$. The campaign runs until 160 harmful episodes are collected, with a cap of 300 episodes \billal{[achieved: X harmful out of Y episodes; Z context-shifted commands]}.
+
+\subsection{Splits}
+We never use random splits~\cite{zavrak2026content}. Training uses the first 70\% of benign time, validation the next 10\%, and test the last 20\% plus all red-team episodes. Thresholds and hyperparameters never see red-team data.
+
+\subsection{Baselines}
+All baselines receive the same streams and the same causal scoring rule. External detectors use their public implementations without architectural change.
+\begin{itemize}
+\item \textbf{B0 Phase-aware value table}: for each (tag, stage phase), the set of value bins seen in benign training; score 1 if the bin is unseen, else the bin's negative log-frequency. It is a learned analogue of state-aware invariants~\cite{abbas2024sain}. \yulliwas{[Implemented by Y. Ameur.]}
+\item \textbf{B1 Allow-list}: the gateway's own policy.
+\item \textbf{B2 Same-feature tabular model}: XGBoost predicts the same (tag, bin) target from the same features, flattened per command. Its score is the same surprise. If our model does not beat B2, the graph adds nothing.
+\item \textbf{B3 Network view}: E-GraphSAGE~\cite{lo2022egraphsage} on flows and Modbus transactions.
+\item \textbf{B4 Agent view}: AIRGuard~\cite{qin2026airguard}, configured with our six tool specifications and run with the operator's LLM. \yulliwas{[Y. Ameur writes the Modbus tool specifications and the log adapter; no change to its code.]}
+\item \textbf{B5 LLM judge}: the operator's LLM receives the task text, the phase of each stage and the proposed command, and returns a risk score from 0 to 10. \yulliwas{[Y. Ameur freezes the prompt before the test data are opened and runs B5.]}
+\end{itemize}
+\textbf{Ablations.} Our model restricted to the agent subgraph, to the plant subgraph and to the network subgraph; without the task node.
+
+\subsection{Metrics and Statistics}
+Detection: AUROC, AUPRC, episode-level recall at 1\% false positive rate and alarms per hour, on three slices: all harmful commands, those that pass the allow-list, and context-shifted commands. Robustness: evasion rate at each budget. Edge cost: latency and memory on the gateway. Statistics: 3 seeds; 95\% confidence intervals by bootstrap over episodes; McNemar tests on episode-level decisions; Holm correction across baselines. \yulliwas{[Y. Ameur writes the analysis script before the test data are opened, deposits it with the registration and runs it on Billal's score files.]}
+
+\subsection{Hypotheses (pre-registered, may fail)}
+\begin{itemize}
+\item[\textbf{H1}] On context-shifted commands, our model's episode-level recall at 1\% false positive rate exceeds B0, B2, B3, B4 and B5 by at least 10 points (McNemar, Holm-corrected $p<0.05$).
+\item[\textbf{H2}] On the same slice, the single-view ablations have AUROC at most 0.6, and removing the task node costs more AUROC than removing the network subgraph.
+\item[\textbf{H3}] At $B=4$, fewer harmful episodes evade our model than B2 and B4.
+\end{itemize}
+If H1 fails against B0, the task adds nothing beyond phase-aware value statistics; if it fails against B2, the graph adds nothing beyond flattened context. Both outcomes are reported.
+
+% =====================================================================
+\section{Results}\label{sec:results}
+% =====================================================================
+\subsection{Pilot and Data Summary}
+\billal{[Table, one column: pilot go/no-go figures; benign hours [X], commands [X], red-team episodes [X], harmful episodes [X], context-shifted commands [X], counts per technique [X]; share of operator commands flagged by the oracle [X\,\%].]}
+
+\subsection{Detection (H1)}
+Table~\ref{tab:main} reports the main comparison.
+
+\begin{table}[!t]
+\centering
+\caption{Episode-level recall at 1\% FPR (\%) on three slices of the test set; mean and 95\% CI over 3 seeds. ``Allow'': harmful commands that pass the allow-list. ``Ctx'': context-shifted commands.}
+\label{tab:main}
+\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccc}
+\toprule
+Method & All & Allow & Ctx \\
+\midrule
+B0 Phase-value table & \yulliwas{[X]} & \yulliwas{[X]} & \yulliwas{[X]} \\
+B1 Allow-list & \billal{[X]} & 0 & 0 \\
+B2 Tabular & \billal{[X]} & \billal{[X]} & \billal{[X]} \\
+B3 E-GraphSAGE & \billal{[X]} & \billal{[X]} & \billal{[X]} \\
+B4 AIRGuard & \yulliwas{[X]} & \yulliwas{[X]} & \yulliwas{[X]} \\
+B5 LLM judge & \yulliwas{[X]} & \yulliwas{[X]} & \yulliwas{[X]} \\
+\textbf{Ours} & \billal{[X]} & \billal{[X]} & \billal{[X]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\yulliwas{[Two to four sentences: H1 accepted or rejected with the Holm-corrected McNemar p-values; alarms per hour of each method.]}
+
+\subsection{Where Does the Signal Come From? (H2)}
+\billal{[Small table: AUROC on the context-shifted slice for the agent-only, plant-only and network-only models and without the task node: [X] each. Two sentences on H2.]}
+
+\subsection{Adaptive Attacker (H3)}
+\yulliwas{[Evasion rate at each budget for B2, B4 and ours: [X\,\%] each, with 95\% CIs, in a 3-row table.]}
+
+\subsection{Cost at the Edge}
+\billal{[One sentence with the latency, memory and model size measured in Section~\ref{sec:model}.]}
+
+% =====================================================================
+\section{Threats to Validity}\label{sec:discussion}
+% =====================================================================
+\textbf{Emulated plant.} Traffic, gateway logs and agent behavior come from the real software stack, but plant physics comes from the testbed's process twin. A real line may show other dynamics. The released data let others test transfer.
+
+\textbf{Oracle.} The oracle uses operating limits on process outputs, kept apart from the recipes that drive the benign generator. Some harmful effects, such as equipment wear, stay outside these limits. Under the fallback oracle, command-level labels rely on a timing rule and are less precise.
+
+\textbf{Emulated misuse.} Hijacks are emulated by switching to a red-team agent. Real hijacks may leave other traces. A different model family and technique-only prompts reduce, but do not remove, the risk that the attacks favor our detector.
+
+\textbf{Benign coverage.} A model trained on benign data flags rare legitimate overrides. We include such overrides in the benign capture and report alarms per hour.
+
+\textbf{Scale.} One agent, one cell and one fieldbus. Multi-agent, multi-cell and OPC UA settings are left for future work.
+
+% =====================================================================
+\section{Conclusion}\label{sec:conclusion}
+% =====================================================================
+LLM agents can issue harmful industrial commands that look normal to every single-view defense. We defined these context-shifted commands, built a graph at the IIoT gateway that links the agent's task to the plant state, and tested a task-conditioned command likelihood against an oracle on process outputs. \billal{[One or two sentences with the measured outcome of H1 and H2, positive or negative.]} Data, oracle and code are released.
+
+% =====================================================================
+\section*{Acknowledgment}
+The authors used Claude (Anthropic) to draft and edit the text of Sections I--IV and to check references, in line with the IEEE policy on AI-generated text~\cite{ieee2026aipolicy}. The authors reviewed and revised all text. No result, figure or code reported in the paper was generated by an AI system. The LLM agents in the capture are part of the experimental object. \billal{[Confirm before submission.]}
+
+\section*{Author Contributions}
+B. Mokhtari: conceptualization, data curation, investigation, software (gateway, capture, model, B1--B3), validation, visualization, writing -- original draft (results). Y. Ameur: conceptualization, methodology, software (B0, B4, B5, adaptive attacker), formal analysis (pre-registration, statistics), writing -- original draft (Sections I--IV, prepared with AI assistance as stated above), writing -- review and editing. S. Bouzefrane: funding acquisition, project administration, resources, supervision, writing -- review and editing.
+
+\section*{Data Availability}
+The capture, the oracle, its OSF registration, the gateway, the graph construction code and the model code are archived on Zenodo under an open license \billal{[Zenodo DOI]}. Testbed credentials and network secrets are removed before release.
+
+\section*{Conflict of Interest}
+The authors declare no competing interests.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\begin{IEEEbiographynophoto}{Billal Mokhtari}
+is a Ph.D. candidate at the CEDRIC Laboratory, Cnam, Paris, France. \billal{[Degrees and research interests, 3 lines.]}
+\end{IEEEbiographynophoto}
+\begin{IEEEbiographynophoto}{Yulliwas Ameur}
+is with Efrei Research Lab, Université Paris-Panthéon-Assas, and with the CEDRIC Laboratory, Cnam, Paris, France.
+\end{IEEEbiographynophoto}
+\begin{IEEEbiographynophoto}{Samia Bouzefrane}
+is a Professor at Cnam, Paris, France, and a member of the CEDRIC Laboratory.
+\end{IEEEbiographynophoto}
+
+\end{document}

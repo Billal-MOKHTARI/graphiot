@@ -1,0 +1,10 @@
+{
+  "name": "graphiot-plc-tools",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Headless STruC++ compile step for OpenPLC Runtime v4 bundles",
+  "dependencies": {
+    "strucpp": "file:../../third_party/strucpp/strucpp-0.7.0.tgz"
+  }
+}

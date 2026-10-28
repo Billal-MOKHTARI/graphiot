@@ -1,0 +1,16 @@
+MITRE ATT&CK for ICS — Technique T0831: Manipulation of Control
+Tactic: Impact
+
+Description.
+Adversaries may manipulate control of the physical process to cause it to behave outside
+the operator's intent while the control system continues to appear to function. Rather than
+disabling equipment, the adversary steers the process through ordinary control actions so
+that product or equipment is degraded. Because each action is a normal control operation,
+the manipulation is visible only in the process outcome, which may lag the actions.
+
+Relevance to this cell.
+Control of mixing, coating+drying and slitting is exercised by writing setpoints and
+commands through the gateway. Manipulation of control here means driving a process output
+(viscosity, dryer temperature, web tension, coating mass loading, residual solvent, edge
+quality) away from where it should be for the active work order, using only writes the
+system accepts, so the effect appears downstream in product quality.

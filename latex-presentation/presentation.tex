@@ -1,0 +1,252 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+\usetheme[progressbar=frametitle]{metropolis}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,babel}
+
+\definecolor{rouge}{RGB}{190,30,45}
+\definecolor{bleu}{RGB}{30,80,170}
+\newcommand{\rb}[1]{\textcolor{rouge}{#1}}
+\newcommand{\bb}[1]{\textcolor{bleu}{#1}}
+\newcommand{\src}[1]{{\scriptsize\color{gray}[#1]}}
+
+\title{Detecting Harmful LLM-Agent Commands in Industrial IoT with Task-Aware Graph Neural Networks}
+\subtitle{Repérer les ordres nuisibles d'un agent LLM en usine par un graphe}
+\author{B.~Mokhtari, Y.~Ameur, S.~Bouzefrane}
+\institute{IEEE IoT Journal, numéro spécial \og Graph Representation Learning for IoT\fg{} -- dépôt le 30/11/2026}
+\date{Présentation du mardi 27/10}
+
+\tikzset{
+  boite/.style={draw, rounded corners=2pt, align=center, font=\footnotesize, minimum height=7mm, inner sep=3pt},
+  fl/.style={-{Stealth[length=2mm]}, thick}
+}
+
+\newcommand{\barre}[5]{\node[left] at (-0.5,-#1) {#2}; \fill[#5] (#3,-#1-0.3) rectangle (#4,-#1+0.3);}
+
+\begin{document}
+
+% 1
+\maketitle
+
+% 2
+\begin{frame}{Le problème en une phrase}
+\begin{alertblock}{}
+Un agent LLM détourné peut envoyer à un automate une commande \textbf{valide, autorisée et banale}, mais \textbf{au mauvais moment}.
+\end{alertblock}
+\vspace{2mm}
+\textbf{Exemple dans l'usine de batteries :}
+\begin{itemize}
+\item L'agent écrit \og vitesse d'enduction = 12 m/min\fg{}.
+\item Pendant l'enduction stable : routine.
+\item Pendant la chauffe du sécheur : couche mal séchée, lot perdu.
+\item Même outil, même registre, même valeur : seul le \textbf{contexte} change.
+\item On appelle cela une commande \textbf{\og context-shifted\fg{}}.
+\end{itemize}
+\end{frame}
+
+% 3
+\begin{frame}{Pourquoi maintenant ?}
+\begin{itemize}
+\item Des agents LLM pilotent déjà des cellules de production en prototype.\\
+  \src{Xia et al., ETFA 2025 ; Vyas \& Mercangöz, arXiv 2025}
+\item L'injection indirecte de consignes marche contre des copilotes LLM d'ICS.\\
+  \src{Shahid \& Mallavrapu, Springer CCIS 2026}
+\item Un agent avec accès aux automates peut causer un impact physique durable.\\
+  \src{PLCBench, Zhou et al., arXiv 2026}
+\end{itemize}
+\vspace{3mm}
+\textbf{Conséquence :} l'agent agit avec les droits d'un opérateur de confiance.
+\end{frame}
+
+% 4
+\begin{frame}{Ce qui existe déjà}
+\centering\small
+\begin{tabular}{lcccc}
+\toprule
+Travail & Tâche & Procédé & Réseau & Graphe appris \\
+\midrule
+AIRGuard (2026) -- garde d'agent & oui & non & non & non \\
+ProbGuard (2025) -- moniteur de trace & partiel & partiel & non & non \\
+SAIN (USENIX Sec.\ 2024) -- invariants ICS & non & oui & non & non \\
+E-GraphSAGE (2022) -- IDS par graphe & non & non & oui & oui \\
+Malladi \& Thamilarasu (2026) -- IDS IoT & non & non & oui & oui \\
+\midrule
+\textbf{Notre travail} & \textbf{oui} & \textbf{oui} & \textbf{oui} & \textbf{oui} \\
+\bottomrule
+\end{tabular}
+\vspace{3mm}
+
+\raggedright
+\textbf{Ce qui manque :} aucun ne relie la tâche de l'agent à l'état de l'usine.
+\end{frame}
+
+% 5
+\begin{frame}{Notre idée et nos 3 contributions}
+\begin{exampleblock}{L'idée}
+Un graphe à la passerelle relie tâche, agent, réseau, automates et étapes ; un GNN juge si la commande est \og surprenante\fg{} dans ce contexte.
+\end{exampleblock}
+\begin{enumerate}
+\item \textbf{Le problème} : définir les commandes context-shifted et en faire une tranche de test mesurable.
+\item \textbf{Le modèle} : vraisemblance de la commande, conditionnée par la tâche, apprise sur données saines seules, sur le CPU de la passerelle.
+\item \textbf{Un test qui peut échouer} : attaques par un agent red-team indépendant, oracle pré-enregistré, attaquant adaptatif.
+\end{enumerate}
+\end{frame}
+
+% 6
+\begin{frame}{Modèle de menace}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\textbf{Qui attaque ?}
+\begin{itemize}
+\item T1 : l'agent détourné ou trompé (cause non modélisée).
+\item Il n'a que les 6 outils de la passerelle.
+\item T2 : attaquant adaptatif, boîte grise, qui doit garder l'effet physique.
+\end{itemize}
+\column{0.5\textwidth}
+\textbf{Ce qu'on protège}
+\begin{itemize}
+\item Le procédé : température, tension, épaisseur.
+\item Le moniteur ne voit ni recettes, ni limites.
+\end{itemize}
+\textbf{Hors périmètre}
+\begin{itemize}
+\item Capteurs falsifiés, passerelle compromise, empoisonnement.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+% 7
+\begin{frame}{La méthode}
+\centering
+\begin{tikzpicture}[node distance=3mm and 6mm]
+\node[boite, fill=orange!15] (task) {Tâche\\\og vitesse OT 42\fg{}};
+\node[boite, fill=orange!15, below=of task] (agent) {Agent LLM\\opérateur};
+\node[boite, fill=blue!10, right=12mm of agent, minimum height=16mm, text width=30mm] (gw) {Passerelle IIoT\\6 outils\\allow-list, journal};
+\node[boite, fill=green!12, right=12mm of gw, yshift=8mm] (plc) {3 automates\\OpenPLC};
+\node[boite, fill=green!12, below=of plc] (stage) {Étapes : mélange,\\enduction, découpe};
+\node[boite, fill=rouge!12, below=5mm of gw, text width=66mm] (gnn) {\textbf{Moniteur} : graphe hétérogène (fenêtre 10 s)\\$\rightarrow$ 2 couches HGT + mémoire GRU\\$\rightarrow$ score = surprise $-\log p$(registre, valeur)};
+\draw[fl] (task) -- (agent);
+\draw[fl] (agent) -- node[above, font=\tiny]{appel} (gw);
+\draw[fl] (gw.east) -- node[above, sloped, font=\tiny]{Modbus} (plc.west);
+\draw[fl] (plc) -- (stage);
+\draw[fl, dashed, gray] (gw) -- (gnn);
+\draw[fl, dashed, gray] (stage.south) |- (gnn.east);
+\draw[fl, dashed, gray] (task.west) -- ++(-3mm,0) |- (gnn.west);
+\end{tikzpicture}
+
+\vspace{1mm}
+{\small Score calculé \textbf{avant} l'effet de la commande. Seuil : 1 \% de faux positifs.}
+\end{frame}
+
+% 8
+\begin{frame}{Le résultat théorique (une observation simple)}
+\begin{block}{Énoncé}
+Un détecteur qui ne voit que (outil, registre, valeur) et l'historique de l'agent donne \textbf{le même score} à une commande context-shifted et à sa jumelle saine.
+\end{block}
+\textbf{Intuition}
+\begin{itemize}
+\item Les deux commandes sont identiques pour lui : il ne peut pas les séparer.
+\item Idem pour un IDS réseau, et pour un détecteur procédé avant l'effet.
+\item Le papier ne la revendique pas comme résultat : elle justifie la tranche.
+\item La vraie question est empirique : le GNN fait-il mieux qu'une table de valeurs par phase ?
+\end{itemize}
+\end{frame}
+
+% 9
+\begin{frame}{Le plan d'expérience}
+\begin{itemize}
+\item \textbf{Questions} : H1 rappel +10 points sur la tranche ; H2 la tâche compte ; H3 moins d'évasion.
+\item \textbf{Données} : banc BATTwin émulé, $\geq$ 8 h saines, 160 épisodes nuisibles (plafond 300).
+\item \textbf{Baselines} : B0 table phase-valeur, B1 allow-list, B2 XGBoost, B3 E-GraphSAGE, B4 AIRGuard, B5 juge LLM.
+\item \textbf{Métriques} : AUROC, AUPRC, rappel épisode à 1 \% FPR, alarmes/h, latence.
+\item \textbf{Statistiques} : 3 graines, bootstrap, McNemar + Holm ; 155 épisodes = 80 \% de puissance.
+\end{itemize}
+\end{frame}
+
+% 10
+\begin{frame}{Le pilote go/no-go de Billal}
+\begin{itemize}
+\item \textbf{Quoi} : 1 h de fonctionnement sain + environ 30 épisodes red-team.
+\item \textbf{Quand} : au plus tard le 25/10/2026.
+\item \textbf{Critère 1} : au moins 50 commandes context-shifted.
+\item \textbf{Critère 2} : un arbre de profondeur 3 (triplet + phase + type de tâche) reste sous 0,9 AUPRC.
+\item \textbf{Sinon} : on révise une fois le prompt red-team ; puis résultat négatif assumé.
+\end{itemize}
+\end{frame}
+
+% 11
+\begin{frame}{\rb{Expérimentation à préparer par Billal}}
+\begin{itemize}
+\item \rb{17/10} : choix de l'oracle (principal ou secours), sorties, limites, $\tau$, $T_{\min}$.
+\item \rb{25/10} : pilote (1 h saine, 30 épisodes) et fichiers pour l'arbre et B0.
+\item \rb{28/10 -- 08/11} : capture principale ($\geq$ 8 h saines, 160 épisodes nuisibles).
+\item \rb{09/11 -- 15/11} : entraînement GNN (3 graines), B2 XGBoost, B3 E-GraphSAGE, ablations.
+\item \rb{15/11} : coût à la passerelle (4 cœurs, 4 Go) ; figure d'architecture ; DOI Zenodo.
+\end{itemize}
+\vspace{1mm}
+{\scriptsize Dates après le 25/10 : proposées, à confirmer ensemble.}
+\end{frame}
+
+% 12
+\begin{frame}{\bb{Ce que prend Yulliwas (30 h, 16/10 -- 15/11)}}
+\begin{itemize}
+\item \bb{22/10} : enregistrement OSF (oracle, limites, hypothèses, script d'analyse).
+\item \bb{26/10} : arbre et B0 sur le pilote, décision go/no-go.
+\item \bb{Novembre} : B0 table phase-valeur, B4 AIRGuard (spécifications Modbus), B5 juge LLM figé.
+\item \bb{Novembre} : attaquant adaptatif (générateur d'éditions, recherche gloutonne, 50 épisodes).
+\item \bb{Après capture} : script statistique lancé sur les fichiers de scores de Billal.
+\end{itemize}
+\vspace{1mm}
+{\scriptsize Dates du 26/10 et de novembre : proposées, à confirmer ensemble.}
+\end{frame}
+
+% 13
+\begin{frame}{Faiblesses connues : ce que dira un relecteur sévère}
+\begin{itemize}
+\item \textbf{Validité} : données émulées, une seule cellule, attaques produites par notre propre dispositif.
+\item \textbf{Apport} : B2 XGBoost ou B0 peut égaler le GNN ; l'architecture est standard.
+\item \textbf{Oracle} : le secours (journaux) est plus sûr ; le fixer comme principal dès maintenant ?
+\item \textbf{Baselines} : pas de détecteur réseau récent fort (Malladi \& Thamilarasu 2026).
+\item \textbf{Faisabilité} : calendrier serré, en parallèle du papier 13 (SoK).
+\end{itemize}
+\vspace{1mm}
+{\scriptsize Dernier relecteur aveugle : acceptation estimée à environ 27 \%.}
+\end{frame}
+
+% 14
+\begin{frame}{À toi de jouer, Billal}
+\begin{itemize}
+\item Quelle seconde baseline réseau publique et récente ? Le code de Malladi est-il disponible ?
+\item Que faire si B2 égale le GNN : quel résultat de repli reste publiable ?
+\item Une 2\textsuperscript{e} cellule ou un 2\textsuperscript{e} agent : faisable avant le 30/11, sans bloquer le 13 ?
+\item Oracle sur journaux comme principal : qu'y perd-on, qu'y gagne-t-on ?
+\item Le titre te parle-t-il ? \og Task-Aware\fg{} dit-il assez ce qui est nouveau ?
+\end{itemize}
+\end{frame}
+
+% 15
+\begin{frame}{Calendrier jusqu'au dépôt}
+\centering
+\begin{tikzpicture}[x=2.0mm, y=5mm, font=\scriptsize]
+% jour 0 = 15/10 ; jour 46 = 30/11
+\foreach \d/\l in {2/17-10, 12/27-10, 22/06-11, 31/15-11, 46/30-11}
+  {\draw[gray!40] (\d,0.4) -- (\d,-8.6); \node[above] at (\d,0.4) {\l};}
+\barre{0}{Oracle fixé}{0}{2}{rouge!70}
+\barre{1}{Enregistrement OSF}{2}{7}{bleu!70}
+\barre{2}{Pilote}{5}{10}{rouge!70}
+\barre{3}{Go/no-go (arbre, B0)}{10}{12}{bleu!70}
+\barre{4}{Capture principale}{13}{24}{rouge!70}
+\barre{5}{GNN, B2, B3, ablations}{25}{31}{rouge!70}
+\barre{6}{B0, B4, B5, attaquant}{13}{31}{bleu!70}
+\barre{7}{Statistiques, résultats}{32}{38}{bleu!40}
+\barre{8}{Rédaction, relecture, dépôt}{38}{46}{gray!60}
+\end{tikzpicture}
+
+\vspace{1mm}
+{\small \rb{Rouge} : Billal \quad \bb{Bleu} : Yulliwas \quad Gris : ensemble}
+\end{frame}
+
+\end{document}

@@ -1,0 +1,27 @@
+# GRAPHIOT base dependencies (no torch, no packet capture). Pinned 24/10/2026.
+pydantic==2.14.1
+pydantic-settings==2.16.1
+PyYAML==6.0.3
+python-dotenv==1.2.4
+numpy==2.5.4
+pandas==3.1.0
+pyarrow==26.0.0
+scipy==1.18.1
+scikit-learn==1.9.1
+statsmodels==0.15.0
+fastapi==0.162.0
+uvicorn==0.54.0
+websockets==17.3
+python-multipart==0.0.32
+httpx==0.28.1
+pymodbus==3.16.1
+ollama==0.6.3
+psutil==7.2.2
+dpkt==1.9.8
+# figures exported with the results (M8)
+matplotlib==3.11.2
+contourpy==1.4.0
+cycler==0.12.1
+fonttools==4.67.0
+kiwisolver==1.5.1
+pillow==13.0.0

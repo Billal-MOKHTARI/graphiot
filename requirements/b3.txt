@@ -1,0 +1,19 @@
+# Separate environment for baseline B3 (E-GraphSAGE, public code by Lo et al., DGL-based).
+# DGL 2.1.0 ships graphbolt only for torch 2.0-2.2, so B3 cannot share the main venv
+# (torch 2.14); its native libraries exist for torch 2.0.0-2.2.1 only. Created on demand as .venv-b3 by graphiot.baselines.b3_egraphsage.
+# Install (one resolution, so no CUDA torch sneaks in from PyPI):
+#   uv pip install --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple \
+#       --index-strategy unsafe-best-match "torch==2.2.1+cpu" -r requirements/b3.txt
+dgl==2.1.0
+torchdata==0.7.1
+numpy==1.26.4
+pandas==2.2.3
+scikit-learn==1.5.2
+networkx==3.3
+category_encoders==2.6.4
+pyarrow==17.0.0
+PyYAML==6.0.3
+psutil==7.2.2
+pydantic==2.11.10
+requests==2.32.5
+tqdm==4.67.1

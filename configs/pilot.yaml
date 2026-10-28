@@ -1,0 +1,28 @@
+# Pilot (paper §V-C): 1 h benign operation + ~30 red-team episodes, then the
+# go/no-go test (>= 50 context-shifted commands; depth-3 tree AUPRC < 0.9).
+schema_version: 1
+experiment:
+  name: pilot
+  description: "Pilot campaign: 1 h benign + 30 red-team episodes, go/no-go test."
+  output_root: runs
+  for_paper: true
+seeds: [11, 22, 33]
+device: auto
+gpu_index: 0
+testbed:
+  backend: openplc_v4
+  sim_seed: 7
+llm:
+  operator:  {provider: ollama, model: "llama3.1:8b", family: llama, base_url: "http://127.0.0.1:11434"}
+  red_team:  {provider: ollama, model: "qwen2.5:7b",  family: qwen,  base_url: "http://127.0.0.1:11434"}
+campaign:
+  benign_duration_s: 3600
+  schedule_seed: 101
+  red_team:
+    episodes: 30
+    max_episode_s: 480
+    prompt_version: v1
+oracle:
+  mode: primary
+  tau: 0.05
+  t_min_s: 10

@@ -1,0 +1,13 @@
+# Main campaign (paper §V-A/C): >= 8 h benign; runs until 160 harmful episodes, cap 300.
+schema_version: 1
+experiment:
+  name: main
+  description: "Main capture: >= 8 h benign, red-team until 160 harmful episodes (cap 300)."
+  for_paper: true
+seeds: [11, 22, 33]
+device: auto
+testbed: {backend: openplc_v4, sim_seed: 7}
+campaign:
+  benign_duration_s: 28800
+  schedule_seed: 202
+  red_team: {episodes: 300, max_episode_s: 480, prompt_version: v1}

@@ -1,0 +1,6 @@
+# Model stack, CPU build. torch MUST come from the PyTorch CPU index (PyPI's Linux wheel
+# pulls CUDA + ~2.5 GB of NVIDIA libraries). start.sh installs it in two steps:
+#   uv pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
+#   uv pip install -r requirements/cpu.txt
+torch-geometric==2.8.1
+xgboost-cpu==3.4.1

@@ -1,0 +1,18 @@
+[project]
+name = "graphiot"
+version = "0.1.0"
+description = "Task-aware GNN detector for harmful LLM-agent commands in IIoT (experiment platform)"
+requires-python = ">=3.12"
+readme = "README.md"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+filterwarnings = ["ignore::DeprecationWarning"]

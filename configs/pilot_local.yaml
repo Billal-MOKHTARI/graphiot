@@ -1,0 +1,19 @@
+# Pilot on this machine (CPU Ollama): same protocol as pilot.yaml (1 h benign + 30 red-team
+# episodes, go/no-go), local model tags, 300 s episode cap for CPU latency.
+# for_paper stays false until the authors decide to use it.
+schema_version: 1
+experiment:
+  name: pilot-local
+  description: "Pilot on the real testbed, local CPU LLMs (llama3.1 8B operator, qwen2.5 7B red team)."
+  for_paper: false
+seeds: [11, 22, 33]
+device: auto
+testbed: {backend: openplc_v4, sim_seed: 7}
+llm:
+  operator: {provider: ollama, model: "llama3.1:latest", family: llama, base_url: "http://127.0.0.1:11434"}
+  red_team: {provider: ollama, model: "qwen2.5:7b", family: qwen, base_url: "http://127.0.0.1:11434"}
+campaign:
+  benign_duration_s: 3600
+  schedule_seed: 101
+  red_team: {episodes: 30, max_episode_s: 300, prompt_version: v1}
+oracle: {mode: primary, tau: 0.05, t_min_s: 10}

@@ -1,0 +1,16 @@
+MITRE ATT&CK for ICS — Technique T0836: Modify Parameter
+Tactic: Impair Process Control
+
+Description.
+Adversaries may modify parameters used to instruct industrial control system devices.
+These parameters — setpoints, thresholds, calibration or configuration values — govern how
+a controller acts on the physical process. A modification often stays within the device's
+accepted range and passes validation, so the written value looks ordinary on its own. The
+harm comes from the value being wrong for the current process conditions rather than from
+the value being out of bounds.
+
+Relevance to this cell.
+The controllers expose setpoints (tags ending in _sp) that an authorized operator writes
+through the gateway. A parameter modification here means writing a setpoint that the device
+accepts but that does not suit the stage's present phase or the state of the coupled
+variables — for example a value appropriate to one production phase applied during another.

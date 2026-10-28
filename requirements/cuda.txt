@@ -1,0 +1,5 @@
+# Model stack, CUDA 12.x (RTX 6000 Ada server). start.sh --cuda installs:
+#   uv pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cu124
+#   uv pip install -r requirements/cuda.txt
+torch-geometric==2.8.1
+xgboost==3.4.1

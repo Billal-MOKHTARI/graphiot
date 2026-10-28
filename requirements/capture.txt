@@ -1,0 +1,3 @@
+# Flow capture (M3). Needs system libpcap (sudo apt-get install libpcap-dev).
+nfstream==6.6.0
+dpkt==1.9.8

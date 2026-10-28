@@ -1,0 +1,11 @@
+# Minimal deps for the containerized services (field I/O, gateway, HMI, EWS, capture).
+# Same pins as requirements/base.txt.
+pydantic==2.14.1
+PyYAML==6.0.3
+numpy==2.5.4
+pyarrow==26.0.0
+pymodbus==3.16.1
+fastapi==0.162.0
+uvicorn==0.54.0
+httpx==0.28.1
+dpkt==1.9.8

@@ -1,0 +1,71 @@
+name,plc,stage,kind,iec_address,table,modbus_address,dtype,scale,unit,vmin,vmax,agent_readable,agent_writable,description
+mix.speed_sp,PLC_MIX,mixing,setpoint,%MW0,holding,1024,int,1,rpm,0,3500,1,1,mixer/disperser speed setpoint
+mix.jacket_temp_sp,PLC_MIX,mixing,setpoint,%MW1,holding,1025,int,10,degC,0,60,1,1,jacket temperature setpoint
+mix.dose_rate_sp,PLC_MIX,mixing,setpoint,%MW2,holding,1026,int,100,pct_per_s,0,10,1,1,solids dosing rate setpoint
+mix.vacuum_sp,PLC_MIX,mixing,setpoint,%MW3,holding,1027,int,10,kPa_abs,0,101,1,1,de-aeration vacuum setpoint
+mix.viscosity,PLC_MIX,mixing,sensor,%IW0,input,0,int,1,mPa_s,0,12000,1,0,slurry viscosity at reference shear
+mix.solids_pct,PLC_MIX,mixing,sensor,%IW1,input,1,int,10,pct,0,100,1,0,slurry solids content
+mix.temp,PLC_MIX,mixing,sensor,%IW2,input,2,int,10,degC,0,80,1,0,slurry temperature
+mix.air_entrain,PLC_MIX,mixing,sensor,%IW3,input,3,int,10,pct,0,100,1,0,entrained-air proxy
+mix.speed_actual,PLC_MIX,mixing,sensor,%IW4,input,4,int,1,rpm,0,3500,1,0,measured mixer speed
+mix.motor_cmd,PLC_MIX,mixing,output,%QW0,holding,0,int,1,rpm,0,3500,1,0,motor speed command to drive
+mix.heater_cmd,PLC_MIX,mixing,output,%QW1,holding,1,int,10,pct,0,100,1,0,jacket heater duty command
+mix.dose_cmd,PLC_MIX,mixing,output,%QW2,holding,2,int,100,pct_per_s,0,10,1,0,solids feeder rate command
+mix.vacuum_cmd,PLC_MIX,mixing,output,%QW3,holding,3,int,10,kPa_abs,0,101,1,0,vacuum pump/valve pressure command
+mix.phase,PLC_MIX,mixing,phase,%QW10,holding,10,int,1,code,0,3,1,0,"stage phase: 0 idle,1 ramp,2 steady,3 transition"
+mix.time_in_phase,PLC_MIX,mixing,status,%QW11,holding,11,int,1,s,0,32767,1,0,seconds elapsed in the current phase
+mix.work_order,PLC_MIX,mixing,status,%QW12,holding,12,int,1,id,0,32767,1,0,active work-order id loaded into the stage
+mix.run_cmd,PLC_MIX,mixing,command,%QX0.0,coil,0,bool,1,bool,0,1,1,1,start/stop the mixer batch
+mix.vessel_closed,PLC_MIX,mixing,interlock,%IX0.0,discrete,0,bool,1,bool,0,1,1,0,vessel lid closed interlock
+mix.alarm,PLC_MIX,mixing,alarm,%QX1.0,coil,8,bool,1,bool,0,1,1,0,stage alarm raised by the PLC
+mix.alarm_ack,PLC_MIX,mixing,alarm_ack,%QX2.0,coil,16,bool,1,bool,0,1,1,1,acknowledge the stage alarm
+coat.web_speed_sp,PLC_COAT,coating,setpoint,%MW0,holding,1024,int,10,m_per_min,0,25,1,1,line/web speed setpoint
+coat.pump_flow_sp,PLC_COAT,coating,setpoint,%MW1,holding,1025,int,1,mL_per_min,0,450,1,1,slurry pump flow setpoint
+coat.gap_sp,PLC_COAT,coating,setpoint,%MW2,holding,1026,int,1,um,0,450,1,1,slot-die to web gap setpoint
+coat.dryer_z1_temp_sp,PLC_COAT,coating,setpoint,%MW3,holding,1027,int,10,degC,0,180,1,1,dryer zone 1 temperature setpoint
+coat.dryer_z2_temp_sp,PLC_COAT,coating,setpoint,%MW4,holding,1028,int,10,degC,0,180,1,1,dryer zone 2 temperature setpoint
+coat.dryer_z3_temp_sp,PLC_COAT,coating,setpoint,%MW5,holding,1029,int,10,degC,0,180,1,1,dryer zone 3 temperature setpoint
+coat.airflow_sp,PLC_COAT,coating,setpoint,%MW6,holding,1030,int,10,m_per_s,0,18,1,1,dryer nozzle airflow setpoint
+coat.tension_sp,PLC_COAT,coating,setpoint,%MW7,holding,1031,int,1,N,0,350,1,1,web tension setpoint
+coat.dryer_z1_temp,PLC_COAT,coating,sensor,%IW0,input,0,int,10,degC,0,200,1,0,dryer zone 1 air temperature
+coat.dryer_z2_temp,PLC_COAT,coating,sensor,%IW1,input,1,int,10,degC,0,200,1,0,dryer zone 2 air temperature
+coat.dryer_z3_temp,PLC_COAT,coating,sensor,%IW2,input,2,int,10,degC,0,200,1,0,dryer zone 3 air temperature
+coat.web_tension,PLC_COAT,coating,sensor,%IW3,input,3,int,1,N,0,400,1,0,measured web tension
+coat.wet_thickness,PLC_COAT,coating,sensor,%IW4,input,4,int,1,um,0,400,1,0,wet-film thickness
+coat.dry_loading,PLC_COAT,coating,sensor,%IW5,input,5,int,100,mg_per_cm2,0,50,1,0,dry areal mass loading
+coat.residual_solvent,PLC_COAT,coating,sensor,%IW6,input,6,int,10,pct,0,100,1,0,residual solvent in the film
+coat.web_speed_actual,PLC_COAT,coating,sensor,%IW7,input,7,int,10,m_per_min,0,25,1,0,measured web speed
+coat.drive_cmd,PLC_COAT,coating,output,%QW0,holding,0,int,10,m_per_min,0,25,1,0,web drive speed command
+coat.pump_cmd,PLC_COAT,coating,output,%QW1,holding,1,int,1,mL_per_min,0,450,1,0,pump flow command
+coat.z1_heat_cmd,PLC_COAT,coating,output,%QW2,holding,2,int,10,pct,0,100,1,0,zone 1 heater duty
+coat.z2_heat_cmd,PLC_COAT,coating,output,%QW3,holding,3,int,10,pct,0,100,1,0,zone 2 heater duty
+coat.z3_heat_cmd,PLC_COAT,coating,output,%QW4,holding,4,int,10,pct,0,100,1,0,zone 3 heater duty
+coat.fan_cmd,PLC_COAT,coating,output,%QW5,holding,5,int,10,m_per_s,0,18,1,0,dryer fan / nozzle airflow command
+coat.tension_cmd,PLC_COAT,coating,output,%QW6,holding,6,int,1,N,0,350,1,0,unwind brake / dancer tension command
+coat.gap_cmd,PLC_COAT,coating,output,%QW7,holding,7,int,1,um,0,450,1,0,slot-die gap actuator command
+coat.phase,PLC_COAT,coating,phase,%QW10,holding,10,int,1,code,0,3,1,0,"stage phase: 0 idle,1 ramp,2 steady,3 transition"
+coat.time_in_phase,PLC_COAT,coating,status,%QW11,holding,11,int,1,s,0,32767,1,0,seconds elapsed in the current phase
+coat.work_order,PLC_COAT,coating,status,%QW12,holding,12,int,1,id,0,32767,1,0,active work-order id loaded into the stage
+coat.run_cmd,PLC_COAT,coating,command,%QX0.0,coil,0,bool,1,bool,0,1,1,1,start/stop coating
+coat.web_present,PLC_COAT,coating,interlock,%IX0.0,discrete,0,bool,1,bool,0,1,1,0,web threaded interlock
+coat.alarm,PLC_COAT,coating,alarm,%QX1.0,coil,8,bool,1,bool,0,1,1,0,stage alarm raised by the PLC
+coat.alarm_ack,PLC_COAT,coating,alarm_ack,%QX2.0,coil,16,bool,1,bool,0,1,1,1,acknowledge the stage alarm
+slit.line_speed_sp,PLC_SLIT,slitting,setpoint,%MW0,holding,1024,int,10,m_per_min,0,45,1,1,slitting line speed setpoint
+slit.tension_sp,PLC_SLIT,slitting,setpoint,%MW1,holding,1025,int,1,N,0,300,1,1,web tension setpoint
+slit.rewind_torque_sp,PLC_SLIT,slitting,setpoint,%MW2,holding,1026,int,10,Nm,0,60,1,1,rewind torque setpoint
+slit.web_tension,PLC_SLIT,slitting,sensor,%IW0,input,0,int,1,N,0,350,1,0,measured web tension
+slit.edge_burr,PLC_SLIT,slitting,sensor,%IW1,input,1,int,1,um,0,200,1,0,edge-burr proxy
+slit.rewind_align,PLC_SLIT,slitting,sensor,%IW2,input,2,int,100,mm,0,20,1,0,rewind telescoping/alignment proxy
+slit.line_speed_actual,PLC_SLIT,slitting,sensor,%IW3,input,3,int,10,m_per_min,0,45,1,0,measured line speed
+slit.drive_cmd,PLC_SLIT,slitting,output,%QW0,holding,0,int,10,m_per_min,0,45,1,0,line drive speed command
+slit.rewind_cmd,PLC_SLIT,slitting,output,%QW1,holding,1,int,10,Nm,0,60,1,0,rewind torque command
+slit.tension_cmd,PLC_SLIT,slitting,output,%QW2,holding,2,int,1,N,0,300,1,0,unwind tension command
+slit.knife_cmd,PLC_SLIT,slitting,output,%QW3,holding,3,int,1,bool,0,1,1,0,knife actuator command (interlocked in the PLC)
+slit.phase,PLC_SLIT,slitting,phase,%QW10,holding,10,int,1,code,0,3,1,0,"stage phase: 0 idle,1 ramp,2 steady,3 transition"
+slit.time_in_phase,PLC_SLIT,slitting,status,%QW11,holding,11,int,1,s,0,32767,1,0,seconds elapsed in the current phase
+slit.work_order,PLC_SLIT,slitting,status,%QW12,holding,12,int,1,id,0,32767,1,0,active work-order id loaded into the stage
+slit.run_cmd,PLC_SLIT,slitting,command,%QX0.0,coil,0,bool,1,bool,0,1,1,1,start/stop slitting
+slit.knife_engage_cmd,PLC_SLIT,slitting,command,%QX0.1,coil,1,bool,1,bool,0,1,1,1,engage the slitting knives
+slit.tension_ok,PLC_SLIT,slitting,interlock,%IX0.0,discrete,0,bool,1,bool,0,1,1,0,tension-established interlock
+slit.alarm,PLC_SLIT,slitting,alarm,%QX1.0,coil,8,bool,1,bool,0,1,1,0,stage alarm raised by the PLC
+slit.alarm_ack,PLC_SLIT,slitting,alarm_ack,%QX2.0,coil,16,bool,1,bool,0,1,1,1,acknowledge the stage alarm

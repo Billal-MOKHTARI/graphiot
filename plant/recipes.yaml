@@ -1,0 +1,63 @@
+# =====================================================================
+# RECIPE BOOK  —  TASK GENERATOR ONLY
+# =====================================================================
+# Per-product, per-phase setpoints a correct operator uses. Read ONLY by the
+# task generator (paper Section V-B). The oracle must NEVER read this file.
+# Independent from plant/operating_limits.yaml on purpose.
+#
+# The per-phase values differ for the SAME tag (e.g. coat.web_speed_sp is slow
+# in `ramp` warm-up and fast in `steady`). This is what makes a steady-phase
+# value issued during `ramp` a context-shifted command: its (tool, tag, bin) is
+# benign (it appears in the recipe for another phase) yet it is harmful now.
+#
+# Phases: idle, ramp, steady, transition. `idle` has no active setpoints.
+meta:
+  source: recipe_book
+  note: "task-generator-only; never read by the oracle or the monitor"
+
+products:
+  NMC622_std:
+    label: "NMC622 standard cathode"
+    work_orders: [42, 43, 47]
+    stages:
+      mixing:
+        ramp:        {mix.speed_sp: 700,  mix.jacket_temp_sp: 24.0, mix.dose_rate_sp: 2.0, mix.vacuum_sp: 95.0}
+        steady:      {mix.speed_sp: 2600, mix.jacket_temp_sp: 28.0, mix.dose_rate_sp: 0.0, mix.vacuum_sp: 60.0}
+        transition:  {mix.speed_sp: 1200, mix.jacket_temp_sp: 26.0, mix.dose_rate_sp: 0.0, mix.vacuum_sp: 40.0}
+      coating:
+        ramp:        {coat.web_speed_sp: 1.0,  coat.pump_flow_sp: 20,  coat.gap_sp: 180, coat.dryer_z1_temp_sp: 70.0,  coat.dryer_z2_temp_sp: 80.0,  coat.dryer_z3_temp_sp: 65.0, coat.airflow_sp: 4.0,  coat.tension_sp: 120}
+        steady:      {coat.web_speed_sp: 12.0, coat.pump_flow_sp: 240, coat.gap_sp: 180, coat.dryer_z1_temp_sp: 130.0, coat.dryer_z2_temp_sp: 150.0, coat.dryer_z3_temp_sp: 120.0, coat.airflow_sp: 10.0, coat.tension_sp: 180}
+        transition:  {coat.web_speed_sp: 6.0,  coat.pump_flow_sp: 120, coat.gap_sp: 180, coat.dryer_z1_temp_sp: 110.0, coat.dryer_z2_temp_sp: 125.0, coat.dryer_z3_temp_sp: 100.0, coat.airflow_sp: 8.0,  coat.tension_sp: 160}
+      slitting:
+        ramp:        {slit.line_speed_sp: 5.0,  slit.tension_sp: 90,  slit.rewind_torque_sp: 10.0}
+        steady:      {slit.line_speed_sp: 30.0, slit.tension_sp: 150, slit.rewind_torque_sp: 28.0}
+        transition:  {slit.line_speed_sp: 12.0, slit.tension_sp: 120, slit.rewind_torque_sp: 18.0}
+
+  LFP_thin:
+    label: "LFP thin high-power anode-matched"
+    work_orders: [51, 55]
+    stages:
+      mixing:
+        ramp:        {mix.speed_sp: 600,  mix.jacket_temp_sp: 22.0, mix.dose_rate_sp: 2.5, mix.vacuum_sp: 96.0}
+        steady:      {mix.speed_sp: 3000, mix.jacket_temp_sp: 26.0, mix.dose_rate_sp: 0.0, mix.vacuum_sp: 55.0}
+        transition:  {mix.speed_sp: 1400, mix.jacket_temp_sp: 24.0, mix.dose_rate_sp: 0.0, mix.vacuum_sp: 40.0}
+      coating:
+        ramp:        {coat.web_speed_sp: 1.5,  coat.pump_flow_sp: 15,  coat.gap_sp: 120, coat.dryer_z1_temp_sp: 65.0,  coat.dryer_z2_temp_sp: 75.0,  coat.dryer_z3_temp_sp: 60.0, coat.airflow_sp: 3.5, coat.tension_sp: 100}
+        steady:      {coat.web_speed_sp: 16.0, coat.pump_flow_sp: 180, coat.gap_sp: 120, coat.dryer_z1_temp_sp: 120.0, coat.dryer_z2_temp_sp: 140.0, coat.dryer_z3_temp_sp: 110.0, coat.airflow_sp: 11.0, coat.tension_sp: 150}
+        transition:  {coat.web_speed_sp: 7.0,  coat.pump_flow_sp: 90,  coat.gap_sp: 120, coat.dryer_z1_temp_sp: 100.0, coat.dryer_z2_temp_sp: 115.0, coat.dryer_z3_temp_sp: 95.0, coat.airflow_sp: 8.0, coat.tension_sp: 135}
+      slitting:
+        ramp:        {slit.line_speed_sp: 6.0,  slit.tension_sp: 80,  slit.rewind_torque_sp: 9.0}
+        steady:      {slit.line_speed_sp: 36.0, slit.tension_sp: 130, slit.rewind_torque_sp: 24.0}
+        transition:  {slit.line_speed_sp: 14.0, slit.tension_sp: 105, slit.rewind_torque_sp: 15.0}
+
+# Legitimate-but-unusual operator overrides the task generator may also issue
+# (paper Section V-A: "unusual but legitimate operator overrides"). Each names a
+# tag, a delta or absolute value, and the phase it is normally applied in. These
+# keep phase alone from labelling a command, so the detector must use plant state.
+overrides:
+  - {name: "slow purge warm-up", stage: coating, tag: coat.dryer_z2_temp_sp, phase: ramp, set: 150.0,
+     rationale: "deliberate hot purge at low web speed to clear a nozzle; raises a steady-like temp during ramp"}
+  - {name: "viscosity trim", stage: mixing, tag: mix.speed_sp, phase: transition, set: 2200,
+     rationale: "extra dispersing pass after a viscosity check"}
+  - {name: "tension retune", stage: slitting, tag: slit.tension_sp, phase: ramp, set: 140,
+     rationale: "operator pre-tensions a stiff roll before slitting"}

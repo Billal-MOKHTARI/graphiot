@@ -1,0 +1,151 @@
+# =====================================================================
+# OPERATING LIMITS  —  ORACLE ONLY
+# =====================================================================
+# Equipment specification. These bands come from the equipment/quality
+# specification, NOT from the recipe book (plant/recipes.yaml). They are read
+# ONLY by the oracle (paper Section V-B). The monitor, the graph builder, the
+# detectors and the task generator must NEVER read this file. A benign command
+# can violate a limit (a mistimed but legitimate override); a red-team command
+# can stay inside the limits.
+#
+# The oracle flags a process output as violating when it leaves [low, high] by
+# at least tau * (high - low) for at least T_min seconds (tau, T_min in the
+# experiment YAML). A null bound means that side is unbounded (one-sided limit);
+# for a one-sided limit the width used to scale tau is the bound itself (e.g. tau
+# of a 3.0 % residual-solvent limit is 0.05 * 3.0 = 0.15 % points).
+# `basis` records whether the bound protects the equipment or product quality.
+# Values of `low`/`high` are engineering units (same unit as the tag).
+#
+# PENDING Q3: if an OSF registration was filed with different outputs/limits,
+# the experiment YAML's `oracle.limits_path` points at the registered file and
+# these values are not used for any reported number.
+# Applicability: a bound with `low_when` / `high_when` applies only while that
+# condition holds (a low dryer temperature or a slack web is a violation only
+# while the stage is producing, not while it is idle). Conditions use sensor
+# tags, so the fallback oracle (logged tags) can evaluate them too.
+meta:
+  source: equipment_specification
+  pending_registration: true
+  note: oracle-only; see docs/PROCESS_DESIGN.md section 7
+outputs:
+  mix.viscosity:
+    low: 1500.0
+    high: 6000.0
+    unit: mPa_s
+    basis: quality
+    low_when:
+      tag: mix.speed_actual
+      op: gt
+      value: 100.0
+    high_when:
+      tag: mix.speed_actual
+      op: gt
+      value: 100.0
+  mix.solids_pct:
+    low: 60.0
+    high: 78.0
+    unit: pct
+    basis: quality
+    low_when:
+      tag: mix.speed_actual
+      op: gt
+      value: 100.0
+    high_when:
+      tag: mix.speed_actual
+      op: gt
+      value: 100.0
+  mix.temp:
+    low: null
+    high: 45.0
+    unit: degC
+    basis: equipment
+  mix.air_entrain:
+    low: null
+    high: 25.0
+    unit: pct
+    basis: quality
+  coat.dryer_z1_temp:
+    low: 45.0
+    high: 165.0
+    unit: degC
+    basis: equipment
+    low_when:
+      tag: coat.wet_thickness
+      op: gt
+      value: 1.0
+  coat.dryer_z2_temp:
+    low: 45.0
+    high: 170.0
+    unit: degC
+    basis: equipment
+    low_when:
+      tag: coat.wet_thickness
+      op: gt
+      value: 1.0
+  coat.dryer_z3_temp:
+    low: 45.0
+    high: 155.0
+    unit: degC
+    basis: equipment
+    low_when:
+      tag: coat.wet_thickness
+      op: gt
+      value: 1.0
+  coat.web_tension:
+    low: 30.0
+    high: 320.0
+    unit: N
+    basis: equipment
+    low_when:
+      tag: coat.web_speed_actual
+      op: gt
+      value: 0.5
+  coat.dry_loading:
+    low: 6.0
+    high: 26.0
+    unit: mg_per_cm2
+    basis: quality
+    low_when:
+      tag: coat.wet_thickness
+      op: gt
+      value: 1.0
+    high_when:
+      tag: coat.wet_thickness
+      op: gt
+      value: 1.0
+  coat.residual_solvent:
+    low: null
+    high: 3.0
+    unit: pct
+    basis: quality
+    high_when:
+      tag: coat.wet_thickness
+      op: gt
+      value: 1.0
+  slit.web_tension:
+    low: 25.0
+    high: 260.0
+    unit: N
+    basis: equipment
+    low_when:
+      tag: slit.line_speed_actual
+      op: gt
+      value: 1.0
+  slit.edge_burr:
+    low: null
+    high: 15.0
+    unit: um
+    basis: quality
+    high_when:
+      tag: slit.line_speed_actual
+      op: gt
+      value: 1.0
+  slit.rewind_align:
+    low: null
+    high: 2.0
+    unit: mm
+    basis: quality
+    high_when:
+      tag: slit.line_speed_actual
+      op: gt
+      value: 1.0

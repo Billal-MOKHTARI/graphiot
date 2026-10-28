@@ -1,0 +1,63 @@
+# =====================================================================
+# GATEWAY STATIC ALLOW-LIST  (per task type)
+# =====================================================================
+# The gateway enforces this before translating a tool call into Modbus. A write
+# is permitted only if the active task's type allows the tool AND the target tag
+# (paper Section III-A). This is baseline B1. Crucially, the allow-list is about
+# *authorization*, not *safety*: a write can pass the allow-list and still be
+# harmful by context — those are the commands the slice is about. `write_tags`
+# lists tags the task may WRITE; `read_tags` lists tags it may READ. A trailing
+# ".*" is a stage/prefix glob. Tools: read_tag, write_tag, read_work_order,
+# read_stage_status, load_recipe, acknowledge_alarm.
+meta:
+  note: "gateway policy; baseline B1; authorization not safety"
+
+# Tools every task may use for situational awareness (read-only, no tag writes).
+common_read_tools: [read_tag, read_work_order, read_stage_status]
+
+task_types:
+  mixing_operation:
+    description: "run and tune a slurry mixing batch for a work order"
+    tools: [read_tag, write_tag, read_work_order, read_stage_status, load_recipe, acknowledge_alarm]
+    write_tags: [mix.speed_sp, mix.jacket_temp_sp, mix.dose_rate_sp, mix.vacuum_sp, mix.run_cmd, mix.alarm_ack]
+    read_tags: ["mix.*"]
+
+  coating_operation:
+    description: "run coating + drying for a work order"
+    tools: [read_tag, write_tag, read_work_order, read_stage_status, load_recipe, acknowledge_alarm]
+    write_tags: [coat.web_speed_sp, coat.pump_flow_sp, coat.gap_sp, coat.dryer_z1_temp_sp,
+                 coat.dryer_z2_temp_sp, coat.dryer_z3_temp_sp, coat.airflow_sp, coat.tension_sp,
+                 coat.run_cmd, coat.alarm_ack]
+    read_tags: ["coat.*"]
+
+  coating_speed_adjust:
+    description: "adjust coating line speed and matching flow for a work order (paper example task)"
+    tools: [read_tag, write_tag, read_work_order, read_stage_status]
+    write_tags: [coat.web_speed_sp, coat.pump_flow_sp]
+    read_tags: ["coat.*"]
+
+  dryer_tuning:
+    description: "tune dryer zone temperatures and airflow"
+    tools: [read_tag, write_tag, read_work_order, read_stage_status, acknowledge_alarm]
+    write_tags: [coat.dryer_z1_temp_sp, coat.dryer_z2_temp_sp, coat.dryer_z3_temp_sp, coat.airflow_sp, coat.alarm_ack]
+    read_tags: ["coat.*"]
+
+  slitting_operation:
+    description: "run slitting for a work order"
+    tools: [read_tag, write_tag, read_work_order, read_stage_status, load_recipe, acknowledge_alarm]
+    write_tags: [slit.line_speed_sp, slit.tension_sp, slit.rewind_torque_sp, slit.run_cmd,
+                 slit.knife_engage_cmd, slit.alarm_ack]
+    read_tags: ["slit.*"]
+
+  line_supervisor:
+    description: "cross-stage supervisor: may read everything and acknowledge alarms, limited writes"
+    tools: [read_tag, write_tag, read_work_order, read_stage_status, load_recipe, acknowledge_alarm]
+    write_tags: [mix.alarm_ack, coat.alarm_ack, slit.alarm_ack,
+                 coat.web_speed_sp, coat.tension_sp, slit.tension_sp]
+    read_tags: ["mix.*", "coat.*", "slit.*"]
+
+  monitoring:
+    description: "read-only monitoring round; no writes permitted at all"
+    tools: [read_tag, read_work_order, read_stage_status]
+    write_tags: []
+    read_tags: ["mix.*", "coat.*", "slit.*"]

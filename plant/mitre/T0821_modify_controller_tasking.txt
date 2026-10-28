@@ -1,0 +1,16 @@
+MITRE ATT&CK for ICS — Technique T0821: Modify Controller Tasking
+Tactic: Impair Process Control
+
+Description.
+Adversaries may modify the tasking of a controller — the sequence, timing or selection of
+the operations it carries out — so that it acts on the process differently from the
+operator's plan. This includes changing which recipe or operating mode a stage follows, or
+the ordering and timing of steps, so the controller executes a valid program at the wrong
+moment in the overall sequence.
+
+Relevance to this cell.
+Each stage follows a work order and a loaded recipe and advances through phases (idle, ramp,
+steady, transition). Modifying controller tasking here means changing the effective tasking
+of a stage through the gateway — loading or applying the wrong recipe/phase settings for the
+current work order, or forcing a stage into a phase's operating point ahead of the process
+being ready for it — so the stage runs a legitimate operation out of sequence.

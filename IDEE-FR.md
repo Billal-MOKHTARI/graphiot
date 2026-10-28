@@ -1,0 +1,9 @@
+**Le problème.** Des agents d'IA, fondés sur de grands modèles de langage, commencent à piloter des usines. Ils passent par une passerelle qui envoie leurs ordres aux automates. Un agent trompé ou détourné peut envoyer un ordre tout à fait normal en apparence. Le même ordre est utile à un moment et nuisible à un autre. Exemple : changer la vitesse d'enduction est banal en production stable, mais gâche un lot pendant la chauffe du sécheur. Les outils de défense actuels ne voient qu'un côté. Les gardes d'agents ignorent l'état de l'usine. Les détecteurs réseau ignorent la tâche de l'agent.
+
+**L'idée.** Nous relions tout dans un seul graphe, construit à la passerelle : la tâche, l'agent, les machines, les automates, les capteurs et les étapes de production. Un réseau de neurones sur graphe apprend, sur du fonctionnement normal seulement, quel ordre est probable dans quel contexte. Un ordre très surprenant déclenche une alerte, avant que son effet n'apparaisse.
+
+**Ce qui est nouveau.** Aucun travail publié ne relie la tâche de l'agent à l'état de l'usine pour juger un ordre. Nous définissons aussi une catégorie précise d'ordres dangereux, ceux qui ne sont nuisibles que par leur contexte.
+
+**Comment on le montre.** Sur un banc d'essai de fabrication de batteries, un agent « attaquant » indépendant produit les attaques. Un arbitre fixé à l'avance juge le dommage d'après les mesures du procédé. Nous comparons notre méthode à six autres, dont un modèle tabulaire simple et un juge fondé sur un modèle de langage. Nous testons aussi un attaquant qui cherche à passer inaperçu.
+
+**Ce qu'il reste à faire.** Fixer l'arbitre, lancer un pilote fin octobre, puis la campagne principale en novembre. Il faudra montrer que le graphe bat vraiment les méthodes simples. Dépôt le 30 novembre 2026.

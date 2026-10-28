@@ -1,0 +1,15 @@
+MITRE ATT&CK for ICS — Technique T0855: Unauthorized Command Message
+Tactic: Impair Process Control
+
+Description.
+Adversaries may send unauthorized command messages to instruct control system assets to
+perform actions outside their intended function or outside the context of the wider
+process. The individual message is a well-formed, valid command of a kind the system
+normally accepts; what makes it unauthorized is that it is issued without the operational
+justification that would normally accompany it.
+
+Relevance to this cell.
+Commands reach the controllers only through the gateway's six tools, under the credentials
+of a trusted operator and within a task's allow-list. An unauthorized command message here
+is a legitimate-looking tool call (a write or a state-changing command such as starting a
+stage or engaging the knives) issued when the process state does not call for it.
